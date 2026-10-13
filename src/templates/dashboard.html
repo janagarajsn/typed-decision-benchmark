@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jev vs Laya vs Vega vs OpenAI — Typed-Decision Benchmark</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Jev vs Laya vs Vega vs OpenAI <span class="dim">/ golden-dataset benchmark</span></h1>
+  </header>
+
+  <section class="control-bar">
+    <div class="control-block">
+      <h2>Dataset</h2>
+      <div class="btn-row" id="dataset-select">
+        {% for ds in datasets %}
+        <button class="opt dataset-opt{% if loop.first %} active{% endif %}" data-value="{{ ds.name }}"
+                data-description="{{ ds.description }}" title="{{ ds.description }}">
+          <span>{{ ds.title }}</span>
+          <span class="opt-sub">{{ ds['items'] }} items · {{ ds.questions|join(', ') }}{% if ds.reviewed < ds['items'] %} · {{ ds.reviewed }}/{{ ds['items'] }} reviewed{% endif %}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="control-block">
+      <h2>Items</h2>
+      <div class="btn-row" id="count-select">
+        <button class="opt" data-value="20">20</button>
+        <button class="opt" data-value="50">50</button>
+        <button class="opt active" data-value="all">All</button>
+      </div>
+    </div>
+
+    <div class="control-block actions">
+      <button id="run-btn" class="start-btn"{% if not datasets %} disabled{% endif %}>Run benchmark</button>
+    </div>
+  </section>
+
+  <div id="error-banner" class="error-banner{% if datasets %} hidden{% endif %}">{% if not datasets %}No valid datasets found in data/golden/. Run <code>python golden.py</code> from src/ to see why.{% endif %}</div>
+
+  <section class="bench-progress">
+    <div id="bench-status" class="bench-status">Idle. Every item has a known-correct answer, so accuracy is exact.</div>
+    <div class="progress-bar"><div id="bench-progress-fill" class="progress-fill"></div></div>
+  </section>
+
+  <section class="scoreboard">
+    {% for lane in lanes %}
+    <div class="score-card" data-lane="{{ lane }}">
+      <div class="score-name">{{ model_info[lane][0] }} <span class="tag">{{ model_info[lane][1] }}</span></div>
+      <div class="score-pct" id="score-pct-{{ lane }}">—</div>
+      <div class="score-frac" id="score-frac-{{ lane }}">0 / 0 correct decisions</div>
+      <div class="score-bar-track"><div id="score-bar-{{ lane }}" class="score-bar-fill lane-{{ lane }}"></div></div>
+      <div class="score-meta">
+        <span>avg confidence <b id="score-conf-{{ lane }}">—</b></span>
+        <span>avg latency <b id="score-latency-{{ lane }}">—</b></span>
+        <span>tokens <b id="score-tokens-{{ lane }}">—</b></span>
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="qtable-wrap">
+    <h2>Per-question breakdown</h2>
+    <div class="table-scroll">
+      <table class="qtable" id="qtable">
+        <thead>
+          <tr>
+            <th>question</th>
+            <th>type</th>
+            {% for lane in lanes %}<th>{{ model_info[lane][0] }} accuracy</th>{% endfor %}
+            <th>disagreements</th>
+            <th>right when they disagreed</th>
+          </tr>
+        </thead>
+        <tbody id="qtable-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="qtable-wrap results-wrap hidden" id="results">
+    <div class="feed-header">
+      <h2>Results <span class="dim results-file" id="results-file"></span></h2>
+      <div class="btn-row export-actions">
+        <a class="opt" id="export-xlsx" href="#" download>Download Excel</a>
+        <button class="opt" id="export-pdf" type="button">Save as PDF</button>
+      </div>
+    </div>
+    <div id="results-body"></div>
+  </section>
+
+  <section class="bench-feed-wrap ticket-feed-wrap">
+    <div class="feed-header">
+      <h2>Live items <span class="dim" id="ticket-label"></span></h2>
+      <div class="btn-row" id="type-filter">
+        <button class="opt active" data-value="all">All</button>
+        <button class="opt" data-value="choice">choice</button>
+        <button class="opt" data-value="noul">noul</button>
+        <button class="opt" data-value="score">score</button>
+      </div>
+    </div>
+    <div id="ticket-feed" class="ticket-feed"></div>
+  </section>
+</div>
+
+<script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>
